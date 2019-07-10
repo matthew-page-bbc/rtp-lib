@@ -42,18 +42,8 @@ class RtpPacket {
         this._rtp[1] = 0;
         var SN = Math.floor(1000 * Math.random());  // sequence number starts from a random value, then incremented by 1
         this._rtp.writeUInt16BE(SN, 2); // sequence number
-        // this._rtp[2] = (SN >>> 8)
-        // this._rtp[3] = (SN & 0xFF);
         this._rtp.writeUInt32BE(1, 4); // timestamp
-        // this._rtp[4] = 0;
-        // this._rtp[5] = 0;
-        // this._rtp[6] = 0;
-        // this._rtp[7] = 1;
         this._rtp.writeUInt32BE(1, 8); // ssrc
-        // this._rtp[8] = 0;
-        // this._rtp[9] = 0;
-        // this._rtp[10] = 0;
-        // this._rtp[11] = 1;
         payloadbuff.copy(this._rtp, 12, 0); // append payload data
     }
 
@@ -70,16 +60,10 @@ class RtpPacket {
     }
 
     get seq() {
-        // return (this._rtp[2] << 8 | this._rtp[3]);
         return this._rtp.readUInt16BE(2);
     }
 
     set seq(val) {
-        // val = val.toUnsigned();
-        // if (val <= 65535) {
-        //     this._rtp[2] = (val >>> 8);
-        //     this._rtp[3] = (val & 0xFF);
-        // }
         this._rtp.writeUInt16BE(val, 2);
     }
 
