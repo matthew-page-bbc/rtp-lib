@@ -10,6 +10,7 @@ class RtpPacket {
 
     constructor(payloadbuff) {
         this._rtp = null;
+        this._valid = false;
 
         if (!Buffer.isBuffer(payloadbuff)) {
             throw "payload must be a Buffer";
@@ -17,10 +18,18 @@ class RtpPacket {
 
         if (payloadbuff.length > 512) {
             // this is probably a complete incoming RTP packet
-            this._rtp = payloadbuff;
+
+            if ((payloadbuff[0] >= 128) && (payloadbuff[0] <= 191)) {   // VERY VERY basic validity check
+                this._rtp = payloadbuff;
+                this._valid = true;
+            }
+            else {
+                console.log('not an rtp packet');
+            }
         }
         else {
             this._init_new_packet(payloadbuff);
+            this._valid = true;
         }
     }
 
@@ -40,7 +49,8 @@ class RtpPacket {
 		bufpkt[11] = (SSRC & 0xFF);*/
         this._rtp[0] = 0x80;
         this._rtp[1] = 0;
-        var SN = Math.floor(1000 * Math.random());  // sequence number starts from a random value, then incremented by 1
+        // var SN = Math.floor(1000 * Math.random());  // sequence number starts from a random value, then incremented by 1
+        var SN = 0;
         this._rtp.writeUInt16BE(SN, 2); // sequence number
         this._rtp.writeUInt32BE(1, 4); // timestamp
         this._rtp.writeUInt32BE(1, 8); // ssrc
@@ -48,6 +58,7 @@ class RtpPacket {
     }
 
     get type() {
+        if (!this._valid) return null;
         return (this._rtp[1] & 0x7F);
     }
 
@@ -60,6 +71,7 @@ class RtpPacket {
     }
 
     get seq() {
+        if (!this._valid) return null;
         return this._rtp.readUInt16BE(2);
     }
 
@@ -68,6 +80,7 @@ class RtpPacket {
     }
 
     get time() {
+        if (!this._valid) return null;
         return this._rtp.readUInt32BE(4);
     }
 
@@ -76,6 +89,7 @@ class RtpPacket {
     }
 
     get source() {
+        if (!this._valid) return null;
         return this._rtp.readUInt32BE(8);
     }
 
@@ -84,6 +98,7 @@ class RtpPacket {
     }
 
     get payload() {
+        if (!this._valid) return null;
         return (this._rtp.slice(12, this._rtp.length));
     }
 
@@ -103,6 +118,7 @@ class RtpPacket {
     }
 
     get packet() {
+        if (!this._valid) return null;
         return this._rtp;
     }
 }
