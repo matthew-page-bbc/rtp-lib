@@ -18,4 +18,4 @@ server.on('message', (msg, remote) => {
     stream.addRtpPacket(pkt);
 });
 
-server.bind(5004);
+server.bind(5004, '0.0.0.0');

@@ -15,6 +15,7 @@ class RtpStream {
 
     addRtpPacket(pkt) {
         debug("expected: " + this.expectedSeq + ", received: " + pkt.seq + ", timestamp: " + pkt.time + ", type: " + pkt.type + ", source: " + pkt.source);
+        debug(pkt.payload);
         
         if (this.expectedSeq == -1) {
             this.queue.push(pkt);

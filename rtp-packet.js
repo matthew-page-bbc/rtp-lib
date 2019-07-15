@@ -11,6 +11,9 @@ class RtpPacket {
     constructor(payloadbuff) {
         this._rtp = null;
         this._valid = false;
+        this._csrc = {};
+        this._extension = null;
+        this._payloadStartsAt = 12;
 
         if (!Buffer.isBuffer(payloadbuff)) {
             throw "payload must be a Buffer";
@@ -19,8 +22,10 @@ class RtpPacket {
         if (payloadbuff.length > 512) {
             // this is probably a complete incoming RTP packet
 
-            if ((payloadbuff[0] >= 128) && (payloadbuff[0] <= 191)) {   // VERY VERY basic validity check
+            if ((payloadbuff[0] >= 128) && (payloadbuff[0] <= 191)) {   // VERY VERY basic validity check                
                 this._rtp = payloadbuff;
+                this._doCsrcAndExtension();
+
                 this._valid = true;
             }
             else {
@@ -55,6 +60,47 @@ class RtpPacket {
         this._rtp.writeUInt32BE(1, 4); // timestamp
         this._rtp.writeUInt32BE(1, 8); // ssrc
         payloadbuff.copy(this._rtp, 12, 0); // append payload data
+    }
+
+    _doCsrcAndExtension() {
+        for(let i = 0; i < this.csrcCount; i ++)
+        this._csrc.push(this._rtp.readUInt32BE(12 + i * 4));
+        const endCsrcIdx = 12 + this.csrcCount * 4;
+
+        this._payloadStartsAt = endCsrcIdx;
+        if (this.extensions) {
+            const extensionLength = this._rtp.readUInt16BE(endCsrcIdx + 2);
+            this._extension = {
+                id: this._rtp.readUInt16BE(endCsrcIdx),
+                data: this._rtp.slice(endCsrcIdx + 4, endCsrcIdx + 4 + extensionLength)
+            }
+            this._payloadStartsAt += 4 + extensionLength;
+        }
+    }
+
+    get version() {
+        if (!this._valid) return null;
+        return (this._rtp[0] & 0xC0) >>> 6        
+    }
+
+    get padding() {
+        if (!this._valid) return null;
+        return (this._rtp[0] & 0x16) >>> 4;
+    }
+
+    get extensions() {
+        if (!this._valid) return null;
+        return (this._rtp[0] & 0x20) >>> 5;
+    }
+
+    get csrcCount() {
+        if (!this._valid) return null;
+        return (this._rtp[0] & 0xF);
+    }
+
+    get marker() {
+        if (!this._valid) return null;
+        return (this._rtp[1] & 0x80) >>> 7;
     }
 
     get type() {
@@ -99,7 +145,7 @@ class RtpPacket {
 
     get payload() {
         if (!this._valid) return null;
-        return (this._rtp.slice(12, this._rtp.length));
+        return (this._rtp.slice(this._payloadStartsAt, this._rtp.length));
     }
 
     set payload(val) {
